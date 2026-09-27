@@ -1,6 +1,3 @@
-// ==========================================
-// Aadi start from here (Easiest Code - Setup & Globals)
-// ==========================================
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,13 +40,6 @@ HWND hEdit, hSubmit;
 HANDLE hInputEvent;
 char userAction = 0;
 
-// ==========================================
-// Aadi explain till here
-// ==========================================
-
-// ==========================================
-// Aarav start from here (2nd Most Difficult - GUI Sync & Event Handling)
-// ==========================================
 void gui_msgbox(const char* title, const char* msg) {
     char fullMsg[2048];
     snprintf(fullMsg, sizeof(fullMsg), "%s\n\n%s", title, msg);
@@ -119,13 +109,6 @@ char gui_ask_question(const char* fullText, const char* a, const char* b, const 
     return userAction;
 }
 
-// ==========================================
-// Aarav explain till here
-// ==========================================
-
-// ==========================================
-// Ameya start from here (Average - Window Procedure & UI Creation)
-// ==========================================
 BOOL CALLBACK SetFontCallback(HWND hwnd, LPARAM lParam) {
     SendMessage(hwnd, WM_SETFONT, (WPARAM)lParam, TRUE);
     return TRUE;
@@ -173,13 +156,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-// ==========================================
-// Ameya explain till here
-// ==========================================
-
-// ==========================================
-// Amit start from here (Average - Game Thread & Main Entry)
-// ==========================================
 DWORD WINAPI GameThread(LPVOID lpParam) {
     srand((unsigned int)time(NULL));
 
@@ -267,13 +243,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// ==========================================
-// Amit explain till here
-// ==========================================
-
-// ==========================================
-// Aakash start from here (Most Difficult - Core Game Logic & Lifelines)
-// ==========================================
 void playGame(struct Question gameDeck[], struct Question backupDeck[], struct Player p) {
     int currentPrize = 0;
     int safePrize = 0; 
@@ -428,7 +397,3 @@ void shuffleQuestions(struct Question array[], int n) {
 void printRules() {
     gui_msgbox("RULES", "- 15 questions to win Rs. 1 Crore.\n- You have 45 SECONDS to answer each question.\n- LIFELINE 1: 50-50 (Removes 2 wrong answers)\n- LIFELINE 2: Flip (Replaces the question entirely)\n- LIFELINE 3: Double Dip (Get 2 attempts to guess the answer)\n- LEVEL 1 SAFE HAVEN: Rs. 10,000 (After Q5)\n- LEVEL 2 SAFE HAVEN: Rs. 3,20,000 (After Q10)\n- Type 'Q' at any time to walk away with your current prize.");
 }
-
-// ==========================================
-// Aakash explain till here
-// ==========================================
