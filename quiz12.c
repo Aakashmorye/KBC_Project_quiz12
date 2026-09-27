@@ -30,15 +30,17 @@ struct Player {
 int loadQuestions(const char* filename, struct Question questions[]);
 void shuffleQuestions(struct Question array[], int n);
 void printRules();
-void playGame(struct Question gameDeck[], struct Question backupDeck[], struct Player p);
+void playGame(struct Question gameDeck[], struct Question backupDeck[], struct Question superSandookDeck[], struct Player p);
 
 // --- GUI GLOBALS ---
 HWND hwndMain;
 HWND hQuestionLabel, hBtnA, hBtnB, hBtnC, hBtnD;
 HWND hBtn50, hBtnFlip, hBtnDD, hBtnQuit;
 HWND hEdit, hSubmit;
+HWND hTimerLabel;
 HANDLE hInputEvent;
 char userAction = 0;
+int g_timeLeft = 45;
 
 void gui_msgbox(const char* title, const char* msg) {
     char fullMsg[2048];
@@ -52,7 +54,7 @@ void gui_msgbox(const char* title, const char* msg) {
     ShowWindow(hBtnC, SW_HIDE); ShowWindow(hBtnD, SW_HIDE);
     ShowWindow(hBtn50, SW_HIDE); ShowWindow(hBtnFlip, SW_HIDE);
     ShowWindow(hBtnDD, SW_HIDE); ShowWindow(hBtnQuit, SW_HIDE);
-    ShowWindow(hEdit, SW_HIDE);
+    ShowWindow(hEdit, SW_HIDE); ShowWindow(hTimerLabel, SW_HIDE);
     
     SetWindowTextA(hSubmit, "Continue");
     SetWindowPos(hSubmit, NULL, 240, 320, 120, 30, SWP_NOZORDER);
@@ -75,6 +77,7 @@ void gui_get_text(const char* prompt, char* buffer, int maxLen) {
     ShowWindow(hBtnC, SW_HIDE); ShowWindow(hBtnD, SW_HIDE);
     ShowWindow(hBtn50, SW_HIDE); ShowWindow(hBtnFlip, SW_HIDE);
     ShowWindow(hBtnDD, SW_HIDE); ShowWindow(hBtnQuit, SW_HIDE);
+    ShowWindow(hTimerLabel, SW_HIDE);
     
     ShowWindow(hEdit, SW_SHOW); ShowWindow(hSubmit, SW_SHOW);
     SetWindowTextA(hEdit, "");
@@ -85,9 +88,9 @@ void gui_get_text(const char* prompt, char* buffer, int maxLen) {
     GetWindowTextA(hEdit, buffer, maxLen);
 }
 
-char gui_ask_question(const char* fullText, const char* a, const char* b, const char* c, const char* d, int showLifelines) {
+char gui_ask_question(const char* fullText, const char* a, const char* b, const char* c, const char* d, int mode) {
     SetWindowLongA(hQuestionLabel, GWL_STYLE, WS_CHILD | WS_VISIBLE | SS_CENTER);
-    SetWindowPos(hQuestionLabel, NULL, 20, 20, 540, 150, SWP_NOZORDER | SWP_FRAMECHANGED);
+    SetWindowPos(hQuestionLabel, NULL, 20, 50, 540, 120, SWP_NOZORDER | SWP_FRAMECHANGED);
     SetWindowTextA(hQuestionLabel, fullText);
     
     if (a && strlen(a) > 0) { SetWindowTextA(hBtnA, a); ShowWindow(hBtnA, SW_SHOW); } else ShowWindow(hBtnA, SW_HIDE);
@@ -95,18 +98,53 @@ char gui_ask_question(const char* fullText, const char* a, const char* b, const 
     if (c && strlen(c) > 0) { SetWindowTextA(hBtnC, c); ShowWindow(hBtnC, SW_SHOW); } else ShowWindow(hBtnC, SW_HIDE);
     if (d && strlen(d) > 0) { SetWindowTextA(hBtnD, d); ShowWindow(hBtnD, SW_SHOW); } else ShowWindow(hBtnD, SW_HIDE);
 
-    if (showLifelines) {
+    if (mode == 1) {
+        SetWindowTextA(hBtn50, "50-50");
+        SetWindowTextA(hBtnFlip, "Flip");
+        SetWindowTextA(hBtnDD, "Double Dip");
+        SetWindowTextA(hBtnQuit, "Quit");
         ShowWindow(hBtn50, SW_SHOW); ShowWindow(hBtnFlip, SW_SHOW);
         ShowWindow(hBtnDD, SW_SHOW); ShowWindow(hBtnQuit, SW_SHOW);
+        ShowWindow(hTimerLabel, SW_SHOW);
+    } else if (mode == 2) {
+        SetWindowTextA(hBtnQuit, "Pass");
+        ShowWindow(hBtn50, SW_HIDE); ShowWindow(hBtnFlip, SW_HIDE);
+        ShowWindow(hBtnDD, SW_HIDE); ShowWindow(hBtnQuit, SW_SHOW);
+        ShowWindow(hTimerLabel, SW_SHOW);
     } else {
         ShowWindow(hBtn50, SW_HIDE); ShowWindow(hBtnFlip, SW_HIDE);
         ShowWindow(hBtnDD, SW_HIDE); ShowWindow(hBtnQuit, SW_HIDE);
+        ShowWindow(hTimerLabel, SW_HIDE);
     }
     ShowWindow(hEdit, SW_HIDE); ShowWindow(hSubmit, SW_HIDE);
 
-    ResetEvent(hInputEvent);
-    WaitForSingleObject(hInputEvent, INFINITE);
-    return userAction;
+    if (mode == 1 || mode == 2) {
+        ResetEvent(hInputEvent);
+        time_t start = time(NULL);
+        int initial_time = g_timeLeft;
+        while (g_timeLeft > 0) {
+            char tbuf[32];
+            sprintf(tbuf, "Time: %d", g_timeLeft);
+            SetWindowTextA(hTimerLabel, tbuf);
+            InvalidateRect(hTimerLabel, NULL, TRUE);
+
+            DWORD res = WaitForSingleObject(hInputEvent, 1000);
+            if (res == WAIT_OBJECT_0) {
+                return userAction;
+            }
+            g_timeLeft = initial_time - (int)difftime(time(NULL), start);
+        }
+        
+        char tbuf[32];
+        sprintf(tbuf, "Time: 0");
+        SetWindowTextA(hTimerLabel, tbuf);
+        InvalidateRect(hTimerLabel, NULL, TRUE);
+        return 'T';
+    } else {
+        ResetEvent(hInputEvent);
+        WaitForSingleObject(hInputEvent, INFINITE);
+        return userAction;
+    }
 }
 
 BOOL CALLBACK SetFontCallback(HWND hwnd, LPARAM lParam) {
@@ -117,7 +155,8 @@ BOOL CALLBACK SetFontCallback(HWND hwnd, LPARAM lParam) {
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch(msg) {
         case WM_CREATE: {
-            hQuestionLabel = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE | SS_CENTER, 20, 20, 540, 150, hwnd, NULL, NULL, NULL);
+            hTimerLabel = CreateWindowA("STATIC", "Time: 45", WS_CHILD | WS_VISIBLE | SS_CENTER, 250, 10, 100, 30, hwnd, NULL, NULL, NULL);
+            hQuestionLabel = CreateWindowA("STATIC", "", WS_CHILD | WS_VISIBLE | SS_CENTER, 20, 50, 540, 120, hwnd, NULL, NULL, NULL);
             hBtnA = CreateWindowA("BUTTON", "A", WS_CHILD | WS_VISIBLE | BS_MULTILINE, 20, 180, 260, 40, hwnd, (HMENU)10, NULL, NULL);
             hBtnB = CreateWindowA("BUTTON", "B", WS_CHILD | WS_VISIBLE | BS_MULTILINE, 300, 180, 260, 40, hwnd, (HMENU)11, NULL, NULL);
             hBtnC = CreateWindowA("BUTTON", "C", WS_CHILD | WS_VISIBLE | BS_MULTILINE, 20, 230, 260, 40, hwnd, (HMENU)12, NULL, NULL);
@@ -136,6 +175,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             
             HFONT hQuestionFont = CreateFontA(20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
             SendMessage(hQuestionLabel, WM_SETFONT, (WPARAM)hQuestionFont, TRUE);
+            
+            HFONT hTimerFont = CreateFontA(24, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, "Segoe UI");
+            SendMessage(hTimerLabel, WM_SETFONT, (WPARAM)hTimerFont, TRUE);
+            break;
+        }
+        case WM_CTLCOLORSTATIC: {
+            HWND hwndStatic = (HWND)lParam;
+            if (hwndStatic == hTimerLabel) {
+                HDC hdcStatic = (HDC)wParam;
+                if (g_timeLeft > 15) {
+                    SetTextColor(hdcStatic, RGB(0, 180, 0));
+                } else {
+                    SetTextColor(hdcStatic, RGB(255, 0, 0));
+                }
+                SetBkMode(hdcStatic, TRANSPARENT);
+                return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
+            }
             break;
         }
         case WM_COMMAND:
@@ -168,14 +224,27 @@ DWORD WINAPI GameThread(LPVOID lpParam) {
     char msgBuf[512];
     gui_msgbox("Welcome", "WELCOME TO KAUN BANEGA CROREPATI!\nBefore we begin, let's get to know our contestant!");
     
-    gui_get_text("Enter your Full Name:", p1.name, sizeof(p1.name));
+    char profileChoice = gui_ask_question("How would you like to enter your profile?", "Enter Manually", "Default Profile (Aakash)", "", "", 0);
     
-    char ageStr[20];
-    gui_get_text("Enter your Age:", ageStr, sizeof(ageStr));
-    p1.age = atoi(ageStr);
+    while (profileChoice != 'A' && profileChoice != 'B') {
+        profileChoice = gui_ask_question("How would you like to enter your profile?", "Enter Manually", "Default Profile (Aakash)", "", "", 0);
+    }
     
-    gui_get_text("Where are you from?:", p1.location, sizeof(p1.location));
-    gui_get_text("What is your Occupation?:", p1.occupation, sizeof(p1.occupation));
+    if (profileChoice == 'B') {
+        strcpy(p1.name, "Aakash");
+        p1.age = 19;
+        strcpy(p1.location, "Pune");
+        strcpy(p1.occupation, "Student");
+    } else {
+        gui_get_text("Enter your Full Name:", p1.name, sizeof(p1.name));
+        
+        char ageStr[20];
+        gui_get_text("Enter your Age:", ageStr, sizeof(ageStr));
+        p1.age = atoi(ageStr);
+        
+        gui_get_text("Where are you from?:", p1.location, sizeof(p1.location));
+        gui_get_text("What is your Occupation?:", p1.occupation, sizeof(p1.occupation));
+    }
 
     sprintf(msgBuf, "Fantastic! Welcome %s, a %d-year-old %s from %s!\nLet's see if you can win 1 Crore today.", p1.name, p1.age, p1.occupation, p1.location);
     gui_msgbox("Profile Complete", msgBuf);
@@ -210,10 +279,15 @@ DWORD WINAPI GameThread(LPVOID lpParam) {
     backupDeck[0].prizeMoney = kbcPrizes[0]; 
     backupDeck[1].prizeMoney = kbcPrizes[5]; 
     backupDeck[2].prizeMoney = kbcPrizes[10];
+    
+    struct Question superSandookDeck[10];
+    for(int i = 0; i < 10; i++) {
+        superSandookDeck[i] = tier1[i + 6];
+    }
 
     printRules();
     
-    playGame(gameDeck, backupDeck, p1);
+    playGame(gameDeck, backupDeck, superSandookDeck, p1);
 
     exit(0);
     return 0;
@@ -243,7 +317,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void playGame(struct Question gameDeck[], struct Question backupDeck[], struct Player p) {
+void playGame(struct Question gameDeck[], struct Question backupDeck[], struct Question superSandookDeck[], struct Player p) {
     int currentPrize = 0;
     int safePrize = 0; 
     int used5050 = 0, usedFlip = 0, usedDoubleDip = 0;
@@ -256,6 +330,8 @@ void playGame(struct Question gameDeck[], struct Question backupDeck[], struct P
         int printQ = 1; 
         char fullQ[1024];
 
+        g_timeLeft = 45;
+
         while (!answered) {
             if (printQ) {
                 if (i == 0) {
@@ -266,12 +342,10 @@ void playGame(struct Question gameDeck[], struct Question backupDeck[], struct P
                 printQ = 0; 
             }
             
-            time_t start_time = time(NULL);
             answer = gui_ask_question(fullQ, gameDeck[i].options[0], gameDeck[i].options[1], gameDeck[i].options[2], gameDeck[i].options[3], 1);
-            time_t end_time = time(NULL);
             
-            if (difftime(end_time, start_time) > 45.0) {
-                sprintf(msgBuf, "Oh no %s, you took %.0f seconds to answer. The limit is 45 seconds.\n>>> Game Over. You take home Rs. %d. <<<", p.name, difftime(end_time, start_time), safePrize);
+            if (answer == 'T') {
+                sprintf(msgBuf, "Oh no %s, you ran out of time!\n>>> Game Over. You take home Rs. %d. <<<", p.name, safePrize);
                 gui_msgbox("TIME UP!", msgBuf);
                 PlaySound(TEXT("wrong.wav"), NULL, SND_FILENAME | SND_SYNC); 
                 return;
@@ -353,7 +427,85 @@ void playGame(struct Question gameDeck[], struct Question backupDeck[], struct P
             gui_msgbox("Level 1 Cleared!", "!!! WELL DONE! YOU CROSSED LEVEL 1. GUARANTEED RS. 10,000 !!!");
         } else if (i == 9) { 
             safePrize = 320000;
-            gui_msgbox("Level 2 Cleared!", "!!! INCREDIBLE! YOU CROSSED LEVEL 2. GUARANTEED RS. 3,20,000 !!!");
+            gui_msgbox("Level 2 Cleared!", "!!! INCREDIBLE! YOU CROSSED LEVEL 2. GUARANTEED RS. 3,20,000 !!!\n\nGet ready for the SUPER SANDOOK!");
+            
+            gui_msgbox("Super Sandook", "SUPER SANDOOK!\n- 10 Questions.\n- 90 Seconds Total Timer.\n- Each right answer = Rs 10,000.\n- Say 'Pass' to skip, and it will come back if time permits.\n- Answer >=5 to revive a lifeline or add money!");
+
+            int ssActive[10];
+            for(int k=0; k<10; k++) ssActive[k] = 1;
+            int ssCorrect = 0;
+            int ssRemaining = 10;
+            g_timeLeft = 90;
+
+            while (ssRemaining > 0 && g_timeLeft > 0) {
+                int anyAsked = 0;
+                for (int k = 0; k < 10; k++) {
+                    if (g_timeLeft <= 0) break;
+                    if (ssActive[k]) {
+                        anyAsked = 1;
+                        char ssQ[1024];
+                        sprintf(ssQ, "SUPER SANDOOK (%d left)\n\n%s", ssRemaining, superSandookDeck[k].text);
+                        
+                        char ssAns = gui_ask_question(ssQ, superSandookDeck[k].options[0], superSandookDeck[k].options[1], superSandookDeck[k].options[2], superSandookDeck[k].options[3], 2);
+                        
+                        if (ssAns == 'T' || g_timeLeft <= 0) {
+                            break;
+                        } else if (ssAns == 'Q') {
+                            continue;
+                        } else if (ssAns == superSandookDeck[k].correctAnswer) {
+                            ssCorrect++;
+                            ssActive[k] = 0;
+                            ssRemaining--;
+                            PlaySound(TEXT("correct.wav"), NULL, SND_FILENAME | SND_ASYNC); 
+                        } else if (ssAns >= 'A' && ssAns <= 'D') {
+                            ssActive[k] = 0;
+                            ssRemaining--;
+                            PlaySound(TEXT("wrong.wav"), NULL, SND_FILENAME | SND_ASYNC); 
+                        }
+                    }
+                }
+                if (!anyAsked) break;
+            }
+            
+            char ssMsg[512];
+            sprintf(ssMsg, "Super Sandook Over!\nYou answered %d correctly out of 10.\nEarnings: Rs %d.", ssCorrect, ssCorrect * 10000);
+            gui_msgbox("Super Sandook Result", ssMsg);
+            
+            if (ssCorrect >= 5) {
+                char choicePrompt[1024];
+                sprintf(choicePrompt, "You won the Super Sandook reward!\n\nOption A: Add Rs %d to your safe prize.\nOption B: Revive a lost lifeline.", ssCorrect * 10000);
+                
+                char choice = 0;
+                while(choice != 'A' && choice != 'B') {
+                    choice = gui_ask_question(choicePrompt, "Add to Bank", "Revive Lifeline", "", "", 0);
+                }
+                
+                if (choice == 'A') {
+                    safePrize += (ssCorrect * 10000);
+                    sprintf(ssMsg, "Rs %d added to your safe prize!\nNew safe prize: Rs %d.", ssCorrect * 10000, safePrize);
+                    gui_msgbox("Money Added", ssMsg);
+                } else {
+                    if (!used5050 && !usedFlip && !usedDoubleDip) {
+                        gui_msgbox("Oops!", "You haven't used any lifelines yet! Adding money to bank instead.");
+                        safePrize += (ssCorrect * 10000);
+                    } else {
+                        char llPrompt[512] = "Which lifeline to revive?\n";
+                        char optA[32] = "", optB[32] = "", optC[32] = "";
+                        if (used5050) strcpy(optA, "50-50");
+                        if (usedFlip) strcpy(optB, "Flip");
+                        if (usedDoubleDip) strcpy(optC, "Double Dip");
+                        
+                        char reviveChoice = 0;
+                        while (1) {
+                            reviveChoice = gui_ask_question(llPrompt, optA, optB, optC, "", 0);
+                            if (reviveChoice == 'A' && used5050) { used5050 = 0; break; }
+                            if (reviveChoice == 'B' && usedFlip) { usedFlip = 0; break; }
+                            if (reviveChoice == 'C' && usedDoubleDip) { usedDoubleDip = 0; break; }
+                        }
+                        gui_msgbox("Lifeline Revived", "Your selected lifeline has been revived!");
+                    }
+                }
+            }
         }
     }
     
