@@ -208,3 +208,108 @@ C. Neil Armstrong
 D. Michael Collins
 C
 0
+How many players are there in a standard soccer team on the field?
+A. 9
+B. 10
+C. 11
+D. 12
+C
+0
+In which sport would you perform a slam dunk?
+A. Tennis
+B. Basketball
+C. Volleyball
+D. Baseball
+B
+0
+Who was the first female Prime Minister of India?
+A. Sarojini Naidu
+B. Pratibha Patil
+C. Indira Gandhi
+D. Sushma Swaraj
+C
+0
+How many years make up one term for a US President?
+A. 4
+B. 5
+C. 6
+D. 8
+A
+0
+Who directed the blockbuster movie 'Avatar'?
+A. Steven Spielberg
+B. Christopher Nolan
+C. James Cameron
+D. Quentin Tarantino
+C
+0
+Which actor played Iron Man in the Marvel Cinematic Universe?
+A. Chris Evans
+B. Chris Hemsworth
+C. Mark Ruffalo
+D. Robert Downey Jr.
+D
+0
+Which planet is known as the Red Planet?
+A. Venus
+B. Mars
+C. Jupiter
+D. Saturn
+B
+0
+What is the chemical symbol for Gold?
+A. Ag
+B. Au
+C. Gd
+D. Go
+B
+0
+In which year did India gain independence?
+A. 1945
+B. 1946
+C. 1947
+D. 1950
+C
+0
+Which country gifted the Statue of Liberty to the United States?
+A. United Kingdom
+B. Spain
+C. France
+D. Germany
+C
+0
+What is the capital city of Australia?
+A. Sydney
+B. Melbourne
+C. Canberra
+D. Perth
+C
+0
+Which famous river flows through London?
+A. Seine
+B. Rhine
+C. Thames
+D. Danube
+C
+0
+Who is the principal co-founder of Microsoft?
+A. Steve Jobs
+B. Bill Gates
+C. Mark Zuckerberg
+D. Elon Musk
+B
+0
+What does WWW stand for in internet addresses?
+A. World Wide Web
+B. World Web Wide
+C. Wide World Web
+D. Web World Wide
+A
+0
+Who is the author of 'The Jungle Book'?
+A. Mark Twain
+B. Charles Dickens
+C. Rudyard Kipling
+D. Lewis Carroll
+C
+0
