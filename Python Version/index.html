@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC Advanced Edition – Kaun Banega Crorepati</title>
+    <meta name="description" content="Play Kaun Banega Crorepati with beautiful UI, lifelines, timers and full game history powered by SQLite.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════════════════ PARTICLE CANVAS ════════════════ -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- ════════════════ HOME SCREEN ════════════════ -->
+<div id="home-screen" class="screen active">
+
+    <!-- Hero -->
+    <header class="home-hero">
+        <div class="logo-ring">
+            <svg viewBox="0 0 120 120" class="logo-svg">
+                <circle cx="60" cy="60" r="55" class="logo-ring-track"/>
+                <circle cx="60" cy="60" r="55" class="logo-ring-fill"/>
+            </svg>
+            <div class="logo-center">
+                <span class="logo-kbc">KBC</span>
+                <span class="logo-edition">ADV</span>
+            </div>
+        </div>
+        <h1 class="hero-title">Kaun Banega Crorepati</h1>
+        <p class="hero-sub">Advanced Edition &nbsp;·&nbsp; SQLite Powered</p>
+    </header>
+
+    <!-- Stats Bar -->
+    <section class="stats-bar glass" id="stats-bar">
+        <div class="stat-chip">
+            <span class="stat-val" id="stat-games">–</span>
+            <span class="stat-lbl">Games Played</span>
+        </div>
+        <div class="stat-chip highlight">
+            <span class="stat-val" id="stat-highest">₹ –</span>
+            <span class="stat-lbl">Highest Prize</span>
+        </div>
+        <div class="stat-chip">
+            <span class="stat-val" id="stat-total">₹ –</span>
+            <span class="stat-lbl">Total Earned</span>
+        </div>
+        <div class="stat-chip">
+            <span class="stat-val" id="stat-wins">–</span>
+            <span class="stat-lbl">Crorepati Wins</span>
+        </div>
+    </section>
+
+    <!-- Two-column layout: profile + history -->
+    <div class="home-body">
+
+        <!-- Profile Form -->
+        <section class="card glass profile-card" id="profile-card">
+            <h2 class="card-title"><span class="card-icon">👤</span> Player Profile</h2>
+            <div class="input-row">
+                <div class="input-group"><label>Full Name</label><input id="p-name" type="text" placeholder="e.g. Aakash Morye"></div>
+                <div class="input-group"><label>Age</label><input id="p-age" type="number" placeholder="19" min="1" max="120"></div>
+            </div>
+            <div class="input-row">
+                <div class="input-group"><label>Location</label><input id="p-location" type="text" placeholder="e.g. Pune"></div>
+                <div class="input-group"><label>Occupation</label><input id="p-occupation" type="text" placeholder="e.g. Student"></div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" onclick="fillDefault()">⚡ Default Profile</button>
+                <button class="btn btn-primary" onclick="startGame()">🎮 Play Now</button>
+            </div>
+        </section>
+
+        <!-- History Panel -->
+        <section class="card glass history-card" id="history-card">
+            <h2 class="card-title"><span class="card-icon">📜</span> Game History</h2>
+            <div class="history-list" id="history-list">
+                <p class="no-history">No games yet. Play your first game!</p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- ════════════════ GAME SCREEN ════════════════ -->
+<div id="game-screen" class="screen">
+    <div class="game-layout">
+
+        <!-- Left: Prize Ladder -->
+        <aside class="prize-panel glass">
+            <div class="prize-header">Prize Ladder</div>
+            <div class="prize-ladder" id="prize-ladder"></div>
+        </aside>
+
+        <!-- Center: Main -->
+        <main class="game-main">
+            <!-- Top Bar -->
+            <div class="top-bar glass">
+                <div class="timer-wrap">
+                    <svg class="timer-svg" viewBox="0 0 52 52">
+                        <circle class="timer-track" cx="26" cy="26" r="22"/>
+                        <circle class="timer-progress" id="timer-progress" cx="26" cy="26" r="22"/>
+                    </svg>
+                    <span class="timer-val" id="timer-val">45</span>
+                </div>
+                <div class="player-bar">
+                    <span class="player-name" id="display-name">Player</span>
+                    <span class="player-prize" id="display-prize">₹ 0</span>
+                </div>
+                <button class="btn btn-danger" id="quit-btn" onclick="quitGame()">Quit</button>
+            </div>
+
+            <!-- Lifelines -->
+            <div class="lifelines">
+                <button class="lifeline-btn" id="ll-5050" onclick="useLifeline('5050')">
+                    <div class="ll-inner">
+                        <span class="ll-emoji">✂️</span>
+                        <span class="ll-name">50:50</span>
+                    </div>
+                </button>
+                <button class="lifeline-btn" id="ll-flip" onclick="useLifeline('flip')">
+                    <div class="ll-inner">
+                        <span class="ll-emoji">🔄</span>
+                        <span class="ll-name">Flip</span>
+                    </div>
+                </button>
+                <button class="lifeline-btn" id="ll-dd" onclick="useLifeline('dd')">
+                    <div class="ll-inner">
+                        <span class="ll-emoji">x2</span>
+                        <span class="ll-name">Double Dip</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Question -->
+            <div class="question-card glass">
+                <div class="q-number" id="q-number">Q 1 / 15</div>
+                <p class="q-text" id="question-text">Loading question...</p>
+            </div>
+
+            <!-- Options -->
+            <div class="options-grid">
+                <button class="opt-btn" id="opt-A" onclick="selectOption('A')"><span class="opt-lbl">A</span><span class="opt-txt" id="text-A"></span></button>
+                <button class="opt-btn" id="opt-B" onclick="selectOption('B')"><span class="opt-lbl">B</span><span class="opt-txt" id="text-B"></span></button>
+                <button class="opt-btn" id="opt-C" onclick="selectOption('C')"><span class="opt-lbl">C</span><span class="opt-txt" id="text-C"></span></button>
+                <button class="opt-btn" id="opt-D" onclick="selectOption('D')"><span class="opt-lbl">D</span><span class="opt-txt" id="text-D"></span></button>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- ════════════════ MODAL ════════════════ -->
+<div id="modal" class="modal-overlay">
+    <div class="modal-box glass">
+        <div class="modal-icon" id="modal-icon">🎯</div>
+        <h2 id="modal-title">Message</h2>
+        <p  id="modal-desc">...</p>
+        <button class="btn btn-primary" onclick="closeModal()">Continue</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
